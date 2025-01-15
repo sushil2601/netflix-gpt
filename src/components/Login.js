@@ -1,25 +1,85 @@
 import React, { useRef, useState } from 'react'
 import Header from './Header'
 import { checkValidateData } from '../utils/validate';
+import {
+    createUserWithEmailAndPassword ,
+    signInWithEmailAndPassword,
+    updateProfile
+} from "firebase/auth";
+import {auth} from '../utils/firebase'
+import { addUser } from '../utils/userSlice';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+
 
 const Login = () => {
 
   const [isSignInForm,setIsSignInForm] = useState(true)
   const [errorMessage,setErrorMessage] = useState(null);
 
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const email = useRef(null);
   const password = useRef(null);
   const firstName = useRef(null);
   const lastName = useRef(null);
+
 
   const isToggleSignInForm = () =>{
     setIsSignInForm(!isSignInForm)
   }
 
   const handleButtonClick = () =>{
-    const message = checkValidateData(email.current.value,password.current.value,firstName.current.value,lastName.current.value);
+    const message = checkValidateData(email.current.value,password.current.value);
     setErrorMessage(message);
-    // if(message) return;
+    if(message) return;
+
+    //sign up
+    if(!isSignInForm){
+        createUserWithEmailAndPassword(auth, email.current.value, password.current.value)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            updateProfile(user, {
+                displayName: firstName.current.value, 
+                photoURL: "https://example.com/jane-q-user/profile.jpg"
+              }).then(() => {
+                const {uid,email,displayName,photoURL} = auth.currentUser;
+                dispatch(
+                    addUser(
+                        {
+                            uid : uid,
+                            email : email,
+                            displayName : displayName , 
+                            photoURL : photoURL
+                        }
+                    )
+                )
+                navigate('/browse')
+              }).catch((error) => {
+                setErrorMessage(error.message)
+              });
+            
+        })
+        .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            setErrorMessage(errorMessage)
+        });
+    }else{
+        signInWithEmailAndPassword(auth, email.current.value, password.current.value)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            navigate('/browse')
+        })
+        .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            setErrorMessage(errorMessage)
+        });
+    }
+
+
   }
 
   return (
@@ -35,9 +95,9 @@ const Login = () => {
       
       <form onSubmit={(e)=> e.preventDefault()}
         className='absolute w-3/12 p-12 my-24 mx-auto left-0 right-0 bg-opacity-85 text-white bg-black rounded-md'>
-        <h1 className='text-3xl font-bold py-4'>{isSignInForm ? "Sign Up" : "Sign In"}</h1>
+        <h1 className='text-3xl font-bold py-4'>{isSignInForm ? "Sign In" : "Sign Up"}</h1>
         {
-            isSignInForm && 
+            !isSignInForm && 
             <input 
                 className='p-2 my-2 w-full bg-gray-800 bg-opacity-40 rounded-md'
                 ref={firstName} 
@@ -46,7 +106,7 @@ const Login = () => {
             />   
         }
         {
-            isSignInForm && 
+            !isSignInForm && 
             <input 
                 className='p-2 my-2 w-full bg-gray-800 bg-opacity-40 rounded-md' 
                 ref={lastName}
@@ -71,7 +131,7 @@ const Login = () => {
         <button
             className='p-4 my-4 bg-red-700 w-full rounded-md'
             onClick={handleButtonClick}
-        >{isSignInForm ? "Sign Up" : "Sign In"}</button>
+        >{isSignInForm ? "Sign In" : "Sign Up"}</button>
         <p className='text-center text-gray-500'>OR</p>
         <button className='p-4 my-4 bg-gray-600 w-full rounded-md'>Use a sign-in-code</button>
         <span className='flex justify-center mb-2'>Forgot password ?</span>
@@ -82,7 +142,7 @@ const Login = () => {
         <p 
             className='p-3 -mx-2 cursor-pointer'
             onClick={isToggleSignInForm}
-        >{isSignInForm ? "New to Netflix? Sign up now" : "Already register.Sign in now"}</p>
+        >{isSignInForm ? "New to Netflix? Sign Up Now" : "Already register.Sign In Now."}</p>
         <p className='p-2 text-sm -mx-1'>This page is protected by Google reCAPTCHA to ensure you're not a bot. <span>Learn more.</span></p>
       </form>
     </div>

@@ -7,8 +7,8 @@ export const checkValidateData = (email,password,firstName,lastName) =>{
 
     if(!isEmail) return 'Email is not valid';
     if(!isPassword) return 'Password is not valid';
-    if(!isFirstName) return 'First name is not valid';
-    if(!isLastName) return 'Last name is not valid';
+    // if(!isFirstName) return 'First name is not valid';
+    // if(!isLastName) return 'Last name is not valid';
 
     return null;
 
